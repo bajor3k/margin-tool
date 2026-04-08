@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #1a3a5c; color: #fff; padding: 20px; text-align: center; }
+    .header h1 { margin: 0; font-size: 22px; }
+    .content { padding: 20px; background: #f9f9f9; }
+    .details { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 15px 0; }
+    .details table { width: 100%; border-collapse: collapse; }
+    .details td { padding: 8px 0; }
+    .details td:first-child { font-weight: bold; width: 140px; }
+    .action { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; margin: 15px 0; }
+    .footer { padding: 15px; font-size: 12px; color: #666; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Margin Call Notification</h1>
+    </div>
+    <div class="content">
+      <p>Dear {{firm_name}},</p>
+
+      <p>This is to notify you that a margin call has been issued for one of your accounts. Please review the details below and take the necessary action to resolve this item.</p>
+
+      <div class="details">
+        <table>
+          <tr><td>Account Number:</td><td>{{account_number}}</td></tr>
+          <tr><td>Error Type:</td><td>{{error_type}}</td></tr>
+          <tr><td>Date:</td><td>{{date}}</td></tr>
+          <tr><td>Amount:</td><td>{{dollar_amount}}</td></tr>
+          <tr><td>Ticket Reference:</td><td>{{jira_ticket}}</td></tr>
+        </table>
+      </div>
+
+      <div class="action">
+        <strong>Action Required:</strong> Please resolve this margin item at your earliest convenience. Refer to the attached documentation for step-by-step instructions on how to address this type of margin call.
+      </div>
+
+      <p>If you have any questions, please don't hesitate to reach out to our Advisor Services team.</p>
+
+      <p>Thank you,<br>Advisor Services</p>
+    </div>
+    <div class="footer">
+      This is an automated notification. Please do not reply directly to this email.
+    </div>
+  </div>
+</body>
+</html>

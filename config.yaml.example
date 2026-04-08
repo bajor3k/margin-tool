@@ -1,0 +1,34 @@
+# Margin Tool Configuration
+# Copy this file to config.yaml and update the values for your environment.
+
+# Path to the margin calls Excel spreadsheet
+margin_file: "/path/to/margin_calls.xlsx"
+
+# Path to the advisor lookup file (Excel or CSV)
+advisor_file: "/path/to/advisor_lookup.csv"
+
+# Margin error types that trigger ticket creation and email notification.
+# Only rows matching these error types will be processed.
+error_types:
+  - "MARGIN_CALL"
+  - "REG_T_CALL"
+  - "FED_CALL"
+
+# Path to the SQLite database for duplicate tracking
+tracker_db: "./processed.db"
+
+# Email template and attachments
+email_template: "./templates/margin_email.html"
+attachments:
+  - "./attachments/how_to_resolve.pdf"
+
+# Jira settings
+jira:
+  base_url: "https://yourcompany.atlassian.net"
+  project_key: "MARG"
+  issue_type: "Task"
+
+# Outlook / Microsoft Graph settings
+outlook:
+  tenant_id: "your-azure-tenant-id"
+  sender: "margin-ops@yourcompany.com"
