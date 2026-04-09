@@ -22,14 +22,16 @@ def _setup_logging(verbose: bool):
 @click.group()
 @click.option("--config", "config_path", default="config.yaml", type=click.Path(), help="Path to config.yaml")
 @click.option("--dry-run", is_flag=True, help="Preview actions without making API calls")
+@click.option("--skip-duplicates", is_flag=True, help="Skip duplicate checking (useful for testing)")
 @click.option("-v", "--verbose", is_flag=True, help="Enable debug logging")
 @click.pass_context
-def cli(ctx, config_path, dry_run, verbose):
+def cli(ctx, config_path, dry_run, skip_duplicates, verbose):
     """Margin call processing tool — create Jira tickets and notify advisors."""
     _setup_logging(verbose)
     ctx.ensure_object(dict)
     ctx.obj["config"] = load_config(config_path)
     ctx.obj["dry_run"] = dry_run
+    ctx.obj["skip_duplicates"] = skip_duplicates
 
 
 @cli.command()
@@ -38,6 +40,7 @@ def tickets(ctx):
     """Create Jira tickets for margin call items."""
     cfg = ctx.obj["config"]
     dry_run = ctx.obj["dry_run"]
+    skip_duplicates = ctx.obj["skip_duplicates"]
     run_id = str(uuid.uuid4())
 
     items = read_margin_file(cfg.margin_file, cfg.error_types, cfg.margin_file_header_row)
@@ -56,15 +59,16 @@ def tickets(ctx):
     errors = 0
 
     for item in items:
-        existing = tracker.check_duplicate(item)
-        if existing:
-            tracker.flag_duplicate(item, run_id)
-            duplicates += 1
-            click.echo(
-                f"  DUPLICATE: {item.account_number} / {item.error_type} "
-                f"(previously processed {existing.processed_at}). Flagged for review."
-            )
-            continue
+        if not skip_duplicates:
+            existing = tracker.check_duplicate(item)
+            if existing:
+                tracker.flag_duplicate(item, run_id)
+                duplicates += 1
+                click.echo(
+                    f"  DUPLICATE: {item.account_number} / {item.error_type} "
+                    f"(previously processed {existing.processed_at}). Flagged for review."
+                )
+                continue
 
         advisor = get_advisor(advisors, item.account_number)
 
@@ -102,6 +106,7 @@ def emails(ctx):
     """Send advisor notification emails for margin call items."""
     cfg = ctx.obj["config"]
     dry_run = ctx.obj["dry_run"]
+    skip_duplicates = ctx.obj["skip_duplicates"]
     run_id = str(uuid.uuid4())
 
     items = read_margin_file(cfg.margin_file, cfg.error_types, cfg.margin_file_header_row)
@@ -121,15 +126,16 @@ def emails(ctx):
     errors = 0
 
     for item in items:
-        existing = tracker.check_duplicate(item)
-        if existing:
-            tracker.flag_duplicate(item, run_id)
-            duplicates += 1
-            click.echo(
-                f"  DUPLICATE: {item.account_number} / {item.error_type} "
-                f"(previously processed {existing.processed_at}). Flagged for review."
-            )
-            continue
+        if not skip_duplicates:
+            existing = tracker.check_duplicate(item)
+            if existing:
+                tracker.flag_duplicate(item, run_id)
+                duplicates += 1
+                click.echo(
+                    f"  DUPLICATE: {item.account_number} / {item.error_type} "
+                    f"(previously processed {existing.processed_at}). Flagged for review."
+                )
+                continue
 
         advisor = get_advisor(advisors, item.account_number)
         if advisor is None:
