@@ -22,6 +22,7 @@ class OutlookConfig:
     client_id: str = ""
     client_secret: str = ""
     sender: str = ""
+    manual_send: bool = True
 
 
 @dataclass
@@ -67,6 +68,7 @@ def load_config(config_path: str) -> Config:
         client_id=os.environ.get("GRAPH_CLIENT_ID", ""),
         client_secret=os.environ.get("GRAPH_CLIENT_SECRET", ""),
         sender=outlook_raw.get("sender", ""),
+        manual_send=outlook_raw.get("manual_send", True),
     )
 
     return Config(

@@ -14,6 +14,7 @@ dependencies = [
     "msal>=1.24",
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
+    "pywin32>=300; sys_platform == 'win32'",
 ]
 
 [project.scripts]

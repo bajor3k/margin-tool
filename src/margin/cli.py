@@ -113,7 +113,7 @@ def emails(ctx):
     tracker = Tracker(cfg.tracker_db)
 
     if not dry_run:
-        outlook = OutlookClient(cfg.outlook)
+        outlook = OutlookClient(cfg.outlook, manual_send=cfg.outlook.manual_send)
 
     sent = 0
     duplicates = 0

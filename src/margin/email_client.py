@@ -1,10 +1,6 @@
-import base64
 import logging
 from pathlib import Path
 from typing import List, Optional
-
-import msal
-import requests
 
 from margin.config import OutlookConfig
 from margin.models import Advisor, MarginItem
@@ -13,23 +9,24 @@ logger = logging.getLogger(__name__)
 
 
 class OutlookClient:
-    def __init__(self, config: OutlookConfig):
-        self.config = config
-        self.app = msal.ConfidentialClientApplication(
-            config.client_id,
-            authority=f"https://login.microsoftonline.com/{config.tenant_id}",
-            client_credential=config.client_secret,
-        )
-        self.sender = config.sender
+    def __init__(self, config: OutlookConfig, manual_send: bool = True):
+        """Initialize Outlook client.
 
-    def _get_token(self) -> str:
-        result = self.app.acquire_token_for_client(
-            scopes=["https://graph.microsoft.com/.default"]
-        )
-        if "access_token" not in result:
-            error = result.get("error_description", result.get("error", "Unknown error"))
-            raise RuntimeError(f"Failed to acquire Graph API token: {error}")
-        return result["access_token"]
+        Args:
+            config: OutlookConfig with sender email
+            manual_send: If True, open draft for manual review. If False, auto-send.
+        """
+        self.config = config
+        self.sender = config.sender
+        self.manual_send = manual_send
+        try:
+            import win32com.client
+            self.outlook = win32com.client.Dispatch("Outlook.Application")
+        except ImportError:
+            raise ImportError(
+                "pywin32 is required for Outlook integration. "
+                "Install it with: pip install pywin32"
+            )
 
     def _render_template(
         self,
@@ -52,22 +49,6 @@ class OutlookClient:
             template = template.replace(placeholder, value)
         return template
 
-    def _build_attachments(self, attachment_paths: List[str]) -> list:
-        """Read and base64-encode file attachments for the Graph API."""
-        attachments = []
-        for path_str in attachment_paths:
-            path = Path(path_str)
-            if not path.exists():
-                logger.warning(f"Attachment not found, skipping: {path_str}")
-                continue
-            content = base64.b64encode(path.read_bytes()).decode("utf-8")
-            attachments.append({
-                "@odata.type": "#microsoft.graph.fileAttachment",
-                "name": path.name,
-                "contentBytes": content,
-            })
-        return attachments
-
     def send_email(
         self,
         advisor: Advisor,
@@ -76,26 +57,32 @@ class OutlookClient:
         attachment_paths: List[str],
         jira_key: Optional[str] = None,
     ) -> None:
-        """Send the margin call notification email to an advisor."""
+        """Create and send (or display) the margin call notification email to an advisor."""
         html_body = self._render_template(template_path, advisor, item, jira_key)
-        attachments = self._build_attachments(attachment_paths)
+        subject = f"Action Required: Margin Call - Account {item.account_number}"
 
-        payload = {
-            "message": {
-                "subject": f"Action Required: Margin Call - Account {item.account_number}",
-                "body": {"contentType": "HTML", "content": html_body},
-                "toRecipients": [
-                    {"emailAddress": {"address": advisor.email}}
-                ],
-                "attachments": attachments,
-            }
-        }
+        # Create mail item
+        mail = self.outlook.CreateItem(0)  # 0 = olMailItem
+        mail.Subject = subject
+        mail.To = advisor.email
+        mail.HTMLBody = html_body
+        mail.SentOnBehalfOfName = self.sender
 
-        token = self._get_token()
-        resp = requests.post(
-            f"https://graph.microsoft.com/v1.0/users/{self.sender}/sendMail",
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        resp.raise_for_status()
-        logger.info(f"Sent email to {advisor.email} for account {item.account_number}")
+        # Attach files
+        for attachment_path in attachment_paths:
+            path = Path(attachment_path)
+            if path.exists():
+                mail.Attachments.Add(str(path.absolute()))
+            else:
+                logger.warning(f"Attachment not found, skipping: {attachment_path}")
+
+        # Send or display for manual review
+        if self.manual_send:
+            mail.Display(False)  # Display in non-modal window
+            logger.info(
+                f"Email draft opened in Outlook for {advisor.email} "
+                f"(account {item.account_number}). Please review and send manually."
+            )
+        else:
+            mail.Send()
+            logger.info(f"Sent email to {advisor.email} for account {item.account_number}")
