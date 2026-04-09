@@ -32,6 +32,7 @@ class Config:
     tracker_db: str = "./processed.db"
     email_template: str = "./templates/margin_email.html"
     attachments: List[str] = field(default_factory=list)
+    margin_file_header_row: int = 0
     jira: JiraConfig = field(default_factory=JiraConfig)
     outlook: OutlookConfig = field(default_factory=OutlookConfig)
 
@@ -75,6 +76,7 @@ def load_config(config_path: str) -> Config:
         tracker_db=raw.get("tracker_db", "./processed.db"),
         email_template=raw.get("email_template", "./templates/margin_email.html"),
         attachments=raw.get("attachments", []),
+        margin_file_header_row=raw.get("margin_file_header_row", 0),
         jira=jira,
         outlook=outlook,
     )

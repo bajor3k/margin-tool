@@ -25,7 +25,7 @@ def load_advisors(file_path: str) -> Dict[str, Advisor]:
 
     # Try to find the right columns
     acct_col = _find_col(df, ["account_number", "account_no", "account", "acct", "acct_number", "acct_no"])
-    firm_col = _find_col(df, ["firm_name", "firm", "company", "company_name", "advisor_firm"])
+    firm_col = _find_col(df, ["firm_name", "firm", "company", "company_name", "advisor_firm", "advisor"])
     email_col = _find_col(df, ["email", "email_address", "advisor_email", "contact_email"])
 
     advisors = {}

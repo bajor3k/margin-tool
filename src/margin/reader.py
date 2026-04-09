@@ -19,10 +19,10 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 # Common column name variations we'll try to map
 _COLUMN_MAP = {
-    "account_number": ["account_number", "account_no", "account", "acct", "acct_number", "acct_no"],
-    "error_type": ["error_type", "error", "type", "margin_error", "margin_type", "call_type"],
-    "date": ["date", "margin_date", "call_date", "error_date"],
-    "dollar_amount": ["dollar_amount", "amount", "dollar_amt", "$_amount", "margin_amount"],
+    "account_number": ["account_number", "account_no", "account", "acct", "acct_number", "acct_no", "account_#"],
+    "error_type": ["error_type", "error", "type", "margin_error", "margin_type", "call_type", "open_item_type"],
+    "date": ["date", "margin_date", "call_date", "error_date", "open_item_date"],
+    "dollar_amount": ["dollar_amount", "amount", "dollar_amt", "$_amount", "margin_amount", "usde"],
 }
 
 
@@ -39,7 +39,7 @@ def _find_column(df: pd.DataFrame, field: str) -> str:
     )
 
 
-def read_margin_file(file_path: str, error_types: List[str]) -> List[MarginItem]:
+def read_margin_file(file_path: str, error_types: List[str], header_row: int = 0) -> List[MarginItem]:
     """Read the margin spreadsheet, filter by error types, return MarginItems."""
     path = Path(file_path)
     if not path.exists():
@@ -48,7 +48,7 @@ def read_margin_file(file_path: str, error_types: List[str]) -> List[MarginItem]
     if path.suffix.lower() == ".csv":
         df = pd.read_csv(path)
     else:
-        df = pd.read_excel(path, engine="openpyxl")
+        df = pd.read_excel(path, engine="openpyxl", header=header_row)
 
     df = _normalize_columns(df)
 

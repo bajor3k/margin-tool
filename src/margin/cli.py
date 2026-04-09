@@ -40,7 +40,7 @@ def tickets(ctx):
     dry_run = ctx.obj["dry_run"]
     run_id = str(uuid.uuid4())
 
-    items = read_margin_file(cfg.margin_file, cfg.error_types)
+    items = read_margin_file(cfg.margin_file, cfg.error_types, cfg.margin_file_header_row)
     if not items:
         click.echo("No matching margin items found.")
         return
@@ -77,7 +77,11 @@ def tickets(ctx):
 
         try:
             ticket_key = jira.create_ticket(item, advisor)
-            tracker.record_processing(item, run_id, jira_ticket_key=ticket_key)
+            tracker.record_processing(
+                item, run_id, jira_ticket_key=ticket_key,
+                advisor_firm=advisor.firm_name if advisor else None,
+                advisor_email=advisor.email if advisor else None
+            )
             created += 1
             click.echo(f"  Created {ticket_key}: {item.account_number} - {item.error_type}")
         except Exception as e:
@@ -86,6 +90,10 @@ def tickets(ctx):
 
     tracker.close()
     click.echo(f"\nSummary: {created} created, {duplicates} duplicates flagged, {errors} errors")
+
+    if not dry_run and created > 0:
+        Tracker(cfg.tracker_db).write_history_sheet(cfg.margin_file)
+        Tracker(cfg.tracker_db).close()
 
 
 @cli.command()
@@ -96,7 +104,7 @@ def emails(ctx):
     dry_run = ctx.obj["dry_run"]
     run_id = str(uuid.uuid4())
 
-    items = read_margin_file(cfg.margin_file, cfg.error_types)
+    items = read_margin_file(cfg.margin_file, cfg.error_types, cfg.margin_file_header_row)
     if not items:
         click.echo("No matching margin items found.")
         return
@@ -142,7 +150,11 @@ def emails(ctx):
             outlook.send_email(
                 advisor, item, cfg.email_template, cfg.attachments, jira_key
             )
-            tracker.record_processing(item, run_id, jira_ticket_key=jira_key, email_sent=True)
+            tracker.record_processing(
+                item, run_id, jira_ticket_key=jira_key, email_sent=True,
+                advisor_firm=advisor.firm_name if advisor else None,
+                advisor_email=advisor.email if advisor else None
+            )
             sent += 1
             click.echo(f"  Emailed {advisor.email}: {item.account_number} - {item.error_type}")
         except Exception as e:
@@ -151,6 +163,10 @@ def emails(ctx):
 
     tracker.close()
     click.echo(f"\nSummary: {sent} sent, {duplicates} duplicates flagged, {skipped} skipped (no advisor), {errors} errors")
+
+    if not dry_run and sent > 0:
+        Tracker(cfg.tracker_db).write_history_sheet(cfg.margin_file)
+        Tracker(cfg.tracker_db).close()
 
 
 @cli.command()
